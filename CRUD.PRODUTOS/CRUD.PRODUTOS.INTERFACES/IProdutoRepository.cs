@@ -7,8 +7,8 @@ namespace CRUD.PRODUTOS.INTERFACES;
 public interface IProdutoRepository
 {
     Task CriarProdutoAsync(Produto produto);
-    Task<Produto> ListarProdutoAsync(int Id);
-    Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page, int limit);
-    Task EditarProdutoAsync(Produto produto);
-    Task DeletarProdutoAsync(int Id);
+    Task<Produto> ListarProdutoAsync(int id);
+    Task<VisualizarLista<Produto>> ListarProdutosAsync(int page, int limit);
+    Task EditarProdutoAsync(int id, EditarProdutoDTO editarProdutoDTO);
+    Task DeletarProdutoAsync(int id);
 }

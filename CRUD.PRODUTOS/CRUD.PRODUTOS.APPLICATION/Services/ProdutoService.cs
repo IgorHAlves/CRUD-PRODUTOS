@@ -17,16 +17,63 @@ public class ProdutoService : IProdutoService
         _produtoRepository = produtoRepository;
         _unitOfWork = unitOfWork;
     }
+    
+    public async Task<VisualizarProdutoDTO?> ListarProdutoAsync(int id)
+    {
+        Produto? produto = await _produtoRepository.ListarProdutoAsync(id);
+
+        if (produto == null)
+            throw new ArgumentException("Produto não encontrado");
+        
+        VisualizarProdutoDTO retorno = new VisualizarProdutoDTO()
+        {
+            Id = produto.Id,
+            Nome = produto.Nome,
+            Descricao = produto.Descricao,
+            Preco = produto.Preco,
+            QuantidadeEmEstoque = produto.QuantidadeEmEstoque
+        };
+        
+        return retorno;
+    }
+
+    public async Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page, int limit)
+    {
+        var resultado = await _produtoRepository.ListarProdutosAsync(page, limit);
+
+        return new VisualizarLista<VisualizarProdutoDTO>
+        {
+            TotalItens = resultado.TotalItens,
+            TotalPaginas = resultado.TotalPaginas,
+            PaginaAtual = resultado.PaginaAtual,
+            Itens = resultado.Itens.Select(p => new VisualizarProdutoDTO
+            {
+                Id = p.Id,
+                Nome = p.Nome,
+                Descricao = p.Descricao,
+                Preco = p.Preco,
+                QuantidadeEmEstoque = p.QuantidadeEmEstoque
+            }).ToList()
+        };
+    }
 
     public async Task<int> CriarProdutoAsync(CriarProdutoDTO dto)
     {
+        if (dto.Preco < 0)
+            throw new ArgumentException("Preço não pode ser negativo");
+        
+        if (dto.Preco == 0)
+            throw new ArgumentException("Preço não pode ser zero");
+        
+        if (dto.QuantidadeEmEstoque < 0)
+            throw new ArgumentException("Quantidade não pode ser negativa");
+        
         var produto = new Produto
         {
             Nome = dto.Nome,
             Descricao = dto.Descricao,
             Preco = dto.Preco,
             QuantidadeEmEstoque = dto.QuantidadeEmEstoque,
-            DataCriacao = DateTime.UtcNow
         };
 
         await _produtoRepository.CriarProdutoAsync(produto);
@@ -35,19 +82,15 @@ public class ProdutoService : IProdutoService
         return produto.Id;
     }
 
-    public async Task EditarProdutoAsync(EditarProdutoDTO dto)
+    public async Task EditarProdutoAsync(int id,EditarProdutoDTO dto)
     {
-        var produto = new Produto
-        {
-            Id = dto.Id,
-            Nome = dto.Nome,
-            Descricao = dto.Descricao,
-            Preco = dto.Preco,
-            QuantidadeEmEstoque = dto.QuantidadeEmEstoque,
-            DataAlteracao = DateTime.UtcNow
-        };
+        if (dto.Preco < 0)
+            throw new ArgumentException("Preço não pode ser negativo");
 
-        await _produtoRepository.EditarProdutoAsync(produto);
+        if (dto.QuantidadeEmEstoque < 0)
+            throw new ArgumentException("Quantidade não pode ser negativa");
+        
+        await _produtoRepository.EditarProdutoAsync(id,dto);
         await _unitOfWork.CommitAsync();
     }
 
@@ -55,25 +98,5 @@ public class ProdutoService : IProdutoService
     {
         await _produtoRepository.DeletarProdutoAsync(id);
         await _unitOfWork.CommitAsync();
-    }
-
-    public async Task<VisualizarProdutoDTO?> ListarProdutoAsync(int id)
-    {
-        Produto? produto = await _produtoRepository.ListarProdutoAsync(id);
-
-        VisualizarProdutoDTO retorno = new VisualizarProdutoDTO()
-        {
-            Id = produto.Id,
-            Nome = produto.Nome,
-            Descricao = produto.Descricao,
-            Preco = produto.Preco,
-        };
-        
-        return retorno;
-    }
-
-    public async Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page, int limit)
-    {
-        return await _produtoRepository.ListarProdutosAsync(page, limit);
     }
 }

@@ -6,6 +6,11 @@
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
 
+   <PropertyGroup>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\CRUD.PRODUTOS.APPLICATION\CRUD.PRODUTOS.APPLICATION.csproj" />
       <ProjectReference Include="..\CRUD.PRODUTOS.DATA\CRUD.PRODUTOS.DATA.csproj" />

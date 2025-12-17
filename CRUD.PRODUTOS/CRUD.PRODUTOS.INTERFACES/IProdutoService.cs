@@ -8,11 +8,11 @@ public interface IProdutoService
 {
     Task<int> CriarProdutoAsync(CriarProdutoDTO dto);
 
-    Task EditarProdutoAsync(EditarProdutoDTO dto);
+    Task EditarProdutoAsync(int id,EditarProdutoDTO dto);
 
     Task DeletarProdutoAsync(int id);
 
     Task<VisualizarProdutoDTO?> ListarProdutoAsync(int id);
 
-    Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page, int limit);
+    Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page = 1, int limit = 10);
 }

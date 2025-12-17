@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CRUD.PRODUTOS.API</name>
+    </assembly>
+    <members>
+        <member name="M:CRUD.PRODUTOS.API.Controllers.ProdutoController.GetById(System.Int32)">
+            <summary>
+            Retorna um produto pelo Id.
+            </summary>
+            <param name="id">Identificador do produto.</param>
+            <response code="200">Produto encontrado.</response>
+            <response code="404">Produto não encontrado.</response>
+        </member>
+        <member name="M:CRUD.PRODUTOS.API.Controllers.ProdutoController.Get(System.Int32,System.Int32)">
+            <summary>
+            Lista produtos de forma paginada.
+            </summary>
+            <param name="page">Página atual.</param>
+            <param name="limit">Quantidade de itens por página.</param>
+            <response code="200">Lista de produtos retornada.</response>
+        </member>
+        <member name="M:CRUD.PRODUTOS.API.Controllers.ProdutoController.Post(CRUD.PRODUTOS.DOMAIN.DTOs.CriarProdutoDTO)">
+            <summary>
+            Cadastra um novo produto.
+            </summary>
+            <remarks>
+            Valida se o preço e a quantidade são maiores ou iguais a zero.
+            </remarks>
+            <response code="201">Produto criado com sucesso.</response>
+            <response code="400">Dados inválidos.</response>
+        </member>
+        <member name="M:CRUD.PRODUTOS.API.Controllers.ProdutoController.Put(System.Int32,CRUD.PRODUTOS.DOMAIN.DTOs.EditarProdutoDTO)">
+            <summary>
+            Atualiza os dados de um produto existente.
+            </summary>
+            <param name="id">Identificador do produto.</param>
+            <response code="204">Produto atualizado com sucesso.</response>
+            <response code="400">Dados inválidos.</response>
+            <response code="404">Produto não encontrado.</response>
+        </member>
+        <member name="M:CRUD.PRODUTOS.API.Controllers.ProdutoController.Delete(System.Int32)">
+            <summary>
+            Remove um produto.
+            </summary>
+            <param name="id">Identificador do produto.</param>
+            <response code="204">Produto removido com sucesso.</response>
+            <response code="404">Produto não encontrado.</response>
+        </member>
+    </members>
+</doc>

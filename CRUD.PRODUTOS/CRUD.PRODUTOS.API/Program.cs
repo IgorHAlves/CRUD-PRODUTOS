@@ -1,3 +1,4 @@
+using System.Reflection;
 using CRUD.PRODUTOS.DATA.Data;
 using CRUD.PRODUTOS.DATA.Repositories;
 using CRUD.PRODUTOS.INTERFACES;
@@ -6,22 +7,24 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers (API)
 builder.Services.AddControllers();
 
-// Dependency Injection
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// DbContext
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
-// Swagger (recomendado)
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -41,7 +44,6 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
-// API endpoints
 app.MapControllers();
 
 app.Run();
