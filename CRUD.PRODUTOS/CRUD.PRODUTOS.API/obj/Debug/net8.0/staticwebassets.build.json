@@ -1,0 +1,19 @@
+{
+  "Version": 1,
+  "Hash": "6VjfPXc3ADdPGB6t5vMFvgp1UcevhA1i5ERg35IC1HM=",
+  "Source": "CRUD.PRODUTOS.API",
+  "BasePath": "_content/CRUD.PRODUTOS.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "CRUD.PRODUTOS.API/wwwroot",
+      "Source": "CRUD.PRODUTOS.API",
+      "ContentRoot": "/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.API/wwwroot/",
+      "BasePath": "_content/CRUD.PRODUTOS.API",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": []
+}

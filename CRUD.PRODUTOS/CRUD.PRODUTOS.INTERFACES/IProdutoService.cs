@@ -1,0 +1,18 @@
+using CRUD.PRODUTOS.DOMAIN.DTOs;
+using CRUD.PRODUTOS.DOMAIN.Helper;
+using CRUD.PRODUTOS.DOMAIN.Models;
+
+namespace CRUD.PRODUTOS.INTERFACES;
+
+public interface IProdutoService
+{
+    Task<int> CriarProdutoAsync(CriarProdutoDTO dto);
+
+    Task EditarProdutoAsync(EditarProdutoDTO dto);
+
+    Task DeletarProdutoAsync(int id);
+
+    Task<VisualizarProdutoDTO?> ListarProdutoAsync(int id);
+
+    Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page, int limit);
+}
