@@ -74,10 +74,11 @@ Para testar as rotas protegidas da API, siga os passos abaixo:
    * Clique em **Authorize** e depois em **Close**.
 
 
-
 4. **Acessar Rotas**: As rotas protegidas pelo atributo `[Authorize(Roles = "Admin")]` estarão liberadas enquanto o token for válido.
 
 > **Nota**: Se você tentar acessar um recurso de administrador com um usuário de role `Padrao`, a API retornará um erro **403 Forbidden**.
     Clique no botão Authorize (ícone do cadeado) no topo do Swagger.
 
-    No campo Value, cole apenas o código do token (sem o prefixo Bearer) e clique em Authorize.
+## Swagger da API
+
+<img width="1498" height="923" alt="image" src="https://github.com/user-attachments/assets/5d762f6b-56d4-4e30-973d-7142452b5470" />
