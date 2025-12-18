@@ -6,8 +6,8 @@ Esta é uma API REST desenvolvida em **.NET 8** para o gerenciamento de produtos
 
 * **Linguagem:** C# (.NET 8)
 * **Banco de Dados:** PostgreSQL
-* **ORM:** Entity Framework Core (Code First)
-* **Autenticação:** JWT Bearer com Roles (Admin/Common)
+* **ORM:** Entity Framework Core
+* **Autenticação:** JWT Bearer com Roles (Admin/Padrao)
 * **Testes:** xUnit, Moq e Shouldly
 * **Documentação:** Swagger (OpenAPI)
 
