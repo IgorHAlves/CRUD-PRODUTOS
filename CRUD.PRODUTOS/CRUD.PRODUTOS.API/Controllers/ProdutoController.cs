@@ -1,6 +1,7 @@
 using CRUD.PRODUTOS.DOMAIN.DTOs;
 using CRUD.PRODUTOS.DOMAIN.Helper;
 using CRUD.PRODUTOS.INTERFACES;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRUD.PRODUTOS.API.Controllers;
@@ -22,6 +23,7 @@ public class ProdutoController : ControllerBase
     /// <param name="id">Identificador do produto.</param>
     /// <response code="200">Produto encontrado.</response>
     /// <response code="404">Produto não encontrado.</response>
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -42,15 +44,16 @@ public class ProdutoController : ControllerBase
     /// <param name="page">Página atual.</param>
     /// <param name="limit">Quantidade de itens por página.</param>
     /// <response code="200">Lista de produtos retornada.</response>
+    [Authorize]
     [HttpGet]
     public async Task<IActionResult> Get(
+        [FromQuery] string nomeProduto = "",
         [FromQuery] int page = 1,
         [FromQuery] int limit = 10)
     {
-        var produtos = await _produtoService.ListarProdutosAsync(page, limit);
+        var produtos = await _produtoService.ListarProdutosAsync(nomeProduto,page, limit);
         return Ok(produtos);
     }
-
     
     /// <summary>
     /// Cadastra um novo produto.
@@ -60,6 +63,7 @@ public class ProdutoController : ControllerBase
     /// </remarks>
     /// <response code="201">Produto criado com sucesso.</response>
     /// <response code="400">Dados inválidos.</response>
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CriarProdutoDTO dto)
     {
@@ -81,6 +85,7 @@ public class ProdutoController : ControllerBase
     /// <response code="204">Produto atualizado com sucesso.</response>
     /// <response code="400">Dados inválidos.</response>
     /// <response code="404">Produto não encontrado.</response>
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Put(int id, [FromBody] EditarProdutoDTO dto)
     {
@@ -105,6 +110,7 @@ public class ProdutoController : ControllerBase
     /// <param name="id">Identificador do produto.</param>
     /// <response code="204">Produto removido com sucesso.</response>
     /// <response code="404">Produto não encontrado.</response>
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

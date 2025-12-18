@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CRUD.PRODUTOS.DATA.Migrations
 {
     /// <inheritdoc />
-    public partial class CriandoDB : Migration
+    public partial class MigracaoInicial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -29,6 +29,28 @@ namespace CRUD.PRODUTOS.DATA.Migrations
                 {
                     table.PrimaryKey("PK_Produtos", x => x.Id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "Usuarios",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Login = table.Column<string>(type: "text", nullable: false),
+                    SenhaHash = table.Column<string>(type: "text", nullable: false),
+                    DataCriacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DataAlteracao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Usuarios", x => x.Id);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Usuarios_Login",
+                table: "Usuarios",
+                column: "Login",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -36,6 +58,9 @@ namespace CRUD.PRODUTOS.DATA.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Produtos");
+
+            migrationBuilder.DropTable(
+                name: "Usuarios");
         }
     }
 }

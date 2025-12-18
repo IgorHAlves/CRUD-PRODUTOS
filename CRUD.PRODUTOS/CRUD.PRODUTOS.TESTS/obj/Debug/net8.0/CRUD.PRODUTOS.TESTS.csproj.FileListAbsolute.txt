@@ -154,6 +154,8 @@
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/CRUD.PRODUTOS.DATA.dll
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/CRUD.PRODUTOS.DOMAIN.dll
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/CRUD.PRODUTOS.INTERFACES.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Microsoft.IdentityModel.Tokens.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/System.IdentityModel.Tokens.Jwt.dll
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/CRUD.PRODUTOS.APPLICATION.pdb
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/CRUD.PRODUTOS.DATA.pdb
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/CRUD.PRODUTOS.DOMAIN.pdb
@@ -170,3 +172,13 @@
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/obj/Debug/net8.0/CRUD.PRODUTOS.TESTS.pdb
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/obj/Debug/net8.0/CRUD.PRODUTOS.TESTS.genruntimeconfig.cache
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/obj/Debug/net8.0/ref/CRUD.PRODUTOS.TESTS.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/BCrypt.Net-Next.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/BCrypt.Net-Next.xml
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Castle.Core.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Moq.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Microsoft.IdentityModel.Abstractions.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Microsoft.IdentityModel.Logging.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.TESTS/bin/Debug/net8.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll

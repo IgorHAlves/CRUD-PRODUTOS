@@ -37,3 +37,5 @@
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.DATA/obj/Debug/net8.0/CRUD.PRODUTOS.DATA.pdb
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.DATA/obj/Debug/net8.0/CRUD.PRODUTOS.DATA.genruntimeconfig.cache
 /home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.DATA/obj/Debug/net8.0/ref/CRUD.PRODUTOS.DATA.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.DATA/bin/Debug/net8.0/BCrypt.Net-Next.dll
+/home/igor/Projects/CRUD-PRODUTOS/CRUD.PRODUTOS/CRUD.PRODUTOS.DATA/bin/Debug/net8.0/BCrypt.Net-Next.xml

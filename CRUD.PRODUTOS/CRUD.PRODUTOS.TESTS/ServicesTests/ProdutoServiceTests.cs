@@ -196,6 +196,44 @@ public class ProdutoServiceTests
     }
     
     [Fact]
+    public async Task Should_Visualizar_Lista_Produtos_Filtro_Nome()
+    {
+        //Arrange
+        CriarProdutoDTO criarProdutoDTO1 = new CriarProdutoDTO()
+        {
+            Nome = "Camiseta",
+            Descricao = "Camiseta de algodão",
+            Preco = 80,
+            QuantidadeEmEstoque = 20
+        };
+        
+        CriarProdutoDTO criarProdutoDTO2 = new CriarProdutoDTO()
+        {
+            Nome = "Camiseta2",
+            Descricao = "Camiseta de algodão2",
+            Preco = 60,
+            QuantidadeEmEstoque = 10
+        };
+        
+        //Act
+        int idNovoProduto1 = await _produtoService.CriarProdutoAsync(criarProdutoDTO1);
+        int idNovoProduto2 = await _produtoService.CriarProdutoAsync(criarProdutoDTO2);
+        
+        VisualizarLista<VisualizarProdutoDTO> visualizarProdutoDTO = await _produtoService.ListarProdutosAsync("Camiseta2");   
+        
+        //Asset
+        visualizarProdutoDTO.Itens[0].Id.ShouldBe(2);
+        visualizarProdutoDTO.Itens[0].Nome.ShouldBe(criarProdutoDTO2.Nome);
+        visualizarProdutoDTO.Itens[0].Descricao.ShouldBe(criarProdutoDTO2.Descricao);
+        visualizarProdutoDTO.Itens[0].Preco.ShouldBe(criarProdutoDTO2.Preco);
+        visualizarProdutoDTO.Itens[0].QuantidadeEmEstoque.ShouldBe(criarProdutoDTO2.QuantidadeEmEstoque);
+        
+        visualizarProdutoDTO.PaginaAtual.ShouldBe(1);
+        visualizarProdutoDTO.TotalPaginas.ShouldBe(1);
+        visualizarProdutoDTO.TotalItens.ShouldBe(1);
+    }
+    
+    [Fact]
     public async Task Should_Editar_Produto()
     {
         //Arrange

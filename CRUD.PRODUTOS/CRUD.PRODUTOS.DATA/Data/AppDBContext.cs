@@ -10,6 +10,9 @@ public class AppDBContext : DbContext
     {
     }
     public DbSet<Produto> Produtos { get; set; }
+    
+    public DbSet<Usuario> Usuarios { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -17,5 +20,16 @@ public class AppDBContext : DbContext
         
         modelBuilder.Entity<Produto>()
             .HasKey(k => k.Id);
+
+        
+        modelBuilder.Entity<Usuario>()
+            .HasKey(k => k.Id);
+        
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(u => u.Login)
+            .IsUnique();
+
+
+
     }
 }

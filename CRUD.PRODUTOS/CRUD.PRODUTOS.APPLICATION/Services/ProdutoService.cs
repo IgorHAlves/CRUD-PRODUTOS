@@ -37,9 +37,9 @@ public class ProdutoService : IProdutoService
         return retorno;
     }
 
-    public async Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page, int limit)
+    public async Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(string? nomeProduto, int page, int limit)
     {
-        var resultado = await _produtoRepository.ListarProdutosAsync(page, limit);
+        var resultado = await _produtoRepository.ListarProdutosAsync(nomeProduto, page, limit);
 
         return new VisualizarLista<VisualizarProdutoDTO>
         {

@@ -14,5 +14,5 @@ public interface IProdutoService
 
     Task<VisualizarProdutoDTO?> ListarProdutoAsync(int id);
 
-    Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(int page = 1, int limit = 10);
+    Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(string? nomeProduto = "",int page = 1, int limit = 10);
 }

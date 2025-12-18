@@ -77,14 +77,35 @@ public class ProdutoRepositoryTests
         }
         await _context.SaveChangesAsync();
 
-        var resultado = await _repository.ListarProdutosAsync(page: 2, limit: 3);
+        var resultado = await _repository.ListarProdutosAsync("",page: 2, limit: 3);
 
         resultado.TotalItens.ShouldBe(10);
         resultado.TotalPaginas.ShouldBe(4);
         resultado.PaginaAtual.ShouldBe(2);
         resultado.Itens.Count.ShouldBe(3);
     }
+    
+    [Fact]
+    public async Task Should_Listar_Produtos_Paginado_Filtro_Nome()
+    {
+        for (int i = 1; i <= 10; i++)
+        {
+            _context.Produtos.Add(new Produto
+            {
+                Nome = $"Produto {i}",
+                Preco = i * 10,
+                QuantidadeEmEstoque = i
+            });
+        }
+        await _context.SaveChangesAsync();
 
+        var resultado = await _repository.ListarProdutosAsync("Produto 2",page: 1, limit: 3);
+        
+        resultado.TotalItens.ShouldBe(1);
+        resultado.TotalPaginas.ShouldBe(4);
+        resultado.PaginaAtual.ShouldBe(1);
+        resultado.Itens.Count.ShouldBe(1);
+    }
     [Fact]
     public async Task Should_Editar_Produto()
     {

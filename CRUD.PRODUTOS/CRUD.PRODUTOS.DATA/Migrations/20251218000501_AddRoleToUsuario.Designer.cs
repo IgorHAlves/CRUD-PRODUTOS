@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CRUD.PRODUTOS.DATA.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    [Migration("20251217032724_CriandoDB")]
-    partial class CriandoDB
+    [Migration("20251218000501_AddRoleToUsuario")]
+    partial class AddRoleToUsuario
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -55,6 +55,40 @@ namespace CRUD.PRODUTOS.DATA.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Produtos");
+                });
+
+            modelBuilder.Entity("CRUD.PRODUTOS.DOMAIN.Models.Usuario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DataAlteracao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Login")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SenhaHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Login")
+                        .IsUnique();
+
+                    b.ToTable("Usuarios");
                 });
 #pragma warning restore 612, 618
         }

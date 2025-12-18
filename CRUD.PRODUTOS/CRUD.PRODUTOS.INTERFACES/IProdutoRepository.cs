@@ -8,7 +8,7 @@ public interface IProdutoRepository
 {
     Task CriarProdutoAsync(Produto produto);
     Task<Produto> ListarProdutoAsync(int id);
-    Task<VisualizarLista<Produto>> ListarProdutosAsync(int page, int limit);
+    Task<VisualizarLista<Produto>> ListarProdutosAsync(string nomeProduto,int page, int limit);
     Task EditarProdutoAsync(int id, EditarProdutoDTO editarProdutoDTO);
     Task DeletarProdutoAsync(int id);
 }

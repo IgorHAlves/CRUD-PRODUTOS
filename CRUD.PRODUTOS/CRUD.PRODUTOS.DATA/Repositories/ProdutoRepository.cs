@@ -29,13 +29,19 @@ public class ProdutoRepository : IProdutoRepository
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    public async Task<VisualizarLista<Produto>> ListarProdutosAsync(int page, int limit)
+    public async Task<VisualizarLista<Produto>> ListarProdutosAsync(string nomeProduto, int page, int limit)
     {
         var query = _dbContext.Produtos.AsNoTracking();
 
+        if (!string.IsNullOrWhiteSpace(nomeProduto))
+        {
+            query = query.Where(p => p.Nome.ToLower().Contains(nomeProduto.ToLower()));
+        }
+
         int totalItens = await query.CountAsync();
 
-        List<Produto> produtos = await query
+        var produtos = await query
+            .OrderBy(p => p.Id) 
             .Skip((page - 1) * limit)
             .Take(limit)
             .ToListAsync();
@@ -48,7 +54,6 @@ public class ProdutoRepository : IProdutoRepository
             Itens = produtos
         };
     }
-
 
     public async Task EditarProdutoAsync(int id, EditarProdutoDTO dto)
     {
