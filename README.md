@@ -14,7 +14,7 @@ Esta é uma API REST desenvolvida em **.NET 8** para o gerenciamento de produtos
 ## 📌 Funcionalidades
 
 ### Autenticação e Usuários
-* **Registro:** Cadastro de novos usuários com definição de Role (Admin/Common).
+* **Registro:** Cadastro de novos usuários com definição de Role (Admin/Padrao).
 * **Segurança:** Senhas armazenadas com criptografia (Hash).
 * **Login:** Autenticação que gera um token JWT válido por 2 horas.
 
