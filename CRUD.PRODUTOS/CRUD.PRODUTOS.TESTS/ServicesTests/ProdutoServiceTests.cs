@@ -39,7 +39,7 @@ public class ProdutoServiceTests
         //Act
         int idNovoProduto = await _produtoService.CriarProdutoAsync(criarProdutoDTO);
         
-        //Asset
+        //Assert
         idNovoProduto.ShouldBe(1);
     }
 

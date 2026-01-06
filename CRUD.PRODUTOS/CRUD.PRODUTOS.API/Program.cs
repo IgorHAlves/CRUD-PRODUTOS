@@ -97,23 +97,19 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// 2. Pipeline de Middleware (A ORDEM IMPORTA)
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "API V1");
-        c.RoutePrefix = string.Empty; // Swagger na raiz da URL
     });
 }
 
 app.UseHttpsRedirection();
 
-// ESSA ORDEM É OBRIGATÓRIA:
-app.UseAuthentication(); // Primeiro autentica (quem é você?)
-app.UseAuthorization();  // Depois autoriza (o que você pode fazer?)
+app.UseAuthentication();
+app.UseAuthorization(); 
 
 app.MapControllers();
 
