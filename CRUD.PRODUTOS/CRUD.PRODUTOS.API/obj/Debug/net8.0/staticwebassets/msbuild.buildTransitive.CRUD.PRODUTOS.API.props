@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="../buildMultiTargeting/CRUD.PRODUTOS.API.props" />
-</Project>
