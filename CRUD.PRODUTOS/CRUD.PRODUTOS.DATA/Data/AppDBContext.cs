@@ -1,35 +1,23 @@
-using CRUD.PRODUTOS.DOMAIN;
+using System.Reflection;
 using CRUD.PRODUTOS.DOMAIN.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.PRODUTOS.DATA.Data;
 
-public class AppDBContext : DbContext  
+public class AppDBContext : DbContext
 {
-    public AppDBContext(DbContextOptions<AppDBContext> options) :  base(options)
+    public AppDBContext(DbContextOptions<AppDBContext> options) : base(options)
     {
     }
-    public DbSet<Produto> Produtos { get; set; }
-    
-    public DbSet<Usuario> Usuarios { get; set; }
 
+    public DbSet<Produto> Produtos => Set<Produto>();
+
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
-        modelBuilder.Entity<Produto>()
-            .HasKey(k => k.Id);
 
-        
-        modelBuilder.Entity<Usuario>()
-            .HasKey(k => k.Id);
-        
-        modelBuilder.Entity<Usuario>()
-            .HasIndex(u => u.Login)
-            .IsUnique();
-
-
-
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 }

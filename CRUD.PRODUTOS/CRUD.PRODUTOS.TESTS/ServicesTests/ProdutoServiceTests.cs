@@ -1,336 +1,240 @@
-using CRUD.PRODUTOS.DATA.Data;
-using CRUD.PRODUTOS.DATA.Repositories;
-using CRUD.PRODUTOS.DOMAIN.DTOs;
-using CRUD.PRODUTOS.DOMAIN.Helper;
-using CRUD.PRODUTOS.INTERFACES;
-using CRUD.PRODUTOS.SERVICES;
+using CRUD.PRODUTOS.APPLICATION.DTOs.Produto;
+using CRUD.PRODUTOS.APPLICATION.Services;
+using CRUD.PRODUTOS.DOMAIN.Exceptions;
+using CRUD.PRODUTOS.DOMAIN.Models;
+using CRUD.PRODUTOS.DOMAIN.Repositories;
+using CRUD.PRODUTOS.TESTS.Factories;
+using Moq;
 using Shouldly;
 using Xunit;
 
 namespace CRUD.PRODUTOS.TESTS.ServicesTests;
 
+/// <summary>
+/// Testa o serviço isolado do banco: o repositório e a unidade de trabalho
+/// são dublês, de modo que uma falha aqui aponta sempre para a regra de negócio.
+/// </summary>
 public class ProdutoServiceTests
 {
-    private readonly AppDBContext _dbContext;
+    private readonly Mock<IProdutoRepository> _produtoRepository = new(MockBehavior.Strict);
+    private readonly Mock<IUnitOfWork> _unitOfWork = new(MockBehavior.Strict);
     private readonly IProdutoService _produtoService;
 
     public ProdutoServiceTests()
     {
-        _dbContext = TestAppDbContextFactory.Create();
+        _unitOfWork
+            .Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
-        var produtoRepository = new ProdutoRepository(_dbContext);
-        var unitOfWork = new UnitOfWork(_dbContext);
-
-        _produtoService = new ProdutoService(produtoRepository, unitOfWork);
+        _produtoService = new ProdutoService(_produtoRepository.Object, _unitOfWork.Object);
     }
 
     [Fact]
     public async Task Should_Criar_Produto()
     {
         //Arrange
-        CriarProdutoDTO criarProdutoDTO = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 80,
-            QuantidadeEmEstoque = 20
-        };
-        
+        var dto = ProdutoBuilder.Criar();
+
+        _produtoRepository
+            .Setup(r => r.AdicionarAsync(It.IsAny<Produto>(), It.IsAny<CancellationToken>()))
+            .Callback<Produto, CancellationToken>((p, _) => p.Id = 1)
+            .Returns(Task.CompletedTask);
+
         //Act
-        int idNovoProduto = await _produtoService.CriarProdutoAsync(criarProdutoDTO);
-        
+        var idNovoProduto = await _produtoService.CriarProdutoAsync(dto);
+
         //Assert
         idNovoProduto.ShouldBe(1);
+        _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Should_Throw_Criar_Produto_Preco_Negativo()
+    public async Task Should_Criar_Produto_Removendo_Espacos_Do_Nome()
     {
-        
         //Arrange
-        CriarProdutoDTO criarProdutoDTO = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = -80,
-            QuantidadeEmEstoque = 20
-        };
-        
+        Produto? adicionado = null;
+
+        _produtoRepository
+            .Setup(r => r.AdicionarAsync(It.IsAny<Produto>(), It.IsAny<CancellationToken>()))
+            .Callback<Produto, CancellationToken>((p, _) => adicionado = p)
+            .Returns(Task.CompletedTask);
+
         //Act
-        var ex = await Should.ThrowAsync<ArgumentException>(async () =>
-        {
-             await _produtoService.CriarProdutoAsync(criarProdutoDTO);
-        });
-        
+        await _produtoService.CriarProdutoAsync(ProdutoBuilder.Criar(nome: "  Camiseta  "));
+
         //Assert
-        ex.Message.ShouldBe($"Preço não pode ser negativo");
+        adicionado.ShouldNotBeNull();
+        adicionado.Nome.ShouldBe("Camiseta");
     }
-    
-    [Fact]
-    public async Task Should_Throw_Criar_Produto_Preco_Zero()
-    {
-        
-        //Arrange
-        CriarProdutoDTO criarProdutoDTO = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 0,
-            QuantidadeEmEstoque = 20
-        };
-        
-        //Act
-        var ex = await Should.ThrowAsync<ArgumentException>(async () =>
-        {
-            await _produtoService.CriarProdutoAsync(criarProdutoDTO);
-        });
-        
-        //Assert
-        ex.Message.ShouldBe($"Preço não pode ser zero");
-    }
-    
-    [Fact]
-    public async Task Should_Throw_Criar_Produto_Quantidade_Negativa()
-    {
-        
-        //Arrange
-        CriarProdutoDTO criarProdutoDTO = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 80,
-            QuantidadeEmEstoque = -20
-        };
-        
-        //Act
-        var ex = await Should.ThrowAsync<ArgumentException>(async () =>
-        {
-            await _produtoService.CriarProdutoAsync(criarProdutoDTO);
-        });
-        
-        //Assert
-        ex.Message.ShouldBe($"Quantidade não pode ser negativa");
-    }
-    
+
     [Fact]
     public async Task Should_Visualizar_Produto()
     {
         //Arrange
-        CriarProdutoDTO criarProdutoDTO = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 80,
-            QuantidadeEmEstoque = 20
-        };
-        
+        var produto = ProdutoBuilder.Entidade(id: 7);
+
+        _produtoRepository
+            .Setup(r => r.ObterPorIdAsync(7, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(produto);
+
         //Act
-        int idNovoProduto = await _produtoService.CriarProdutoAsync(criarProdutoDTO);
-        
-        VisualizarProdutoDTO visualizarProdutoDTO = await _produtoService.ListarProdutoAsync(idNovoProduto);   
-        
-        //Asset
-        visualizarProdutoDTO.Id.ShouldBe(1);
-        visualizarProdutoDTO.Nome.ShouldBe(criarProdutoDTO.Nome);
-        visualizarProdutoDTO.Descricao.ShouldBe(criarProdutoDTO.Descricao);
-        visualizarProdutoDTO.Preco.ShouldBe(criarProdutoDTO.Preco);
-        visualizarProdutoDTO.QuantidadeEmEstoque.ShouldBe(criarProdutoDTO.QuantidadeEmEstoque);
+        var visualizacao = await _produtoService.ListarProdutoAsync(7);
+
+        //Assert
+        visualizacao.Id.ShouldBe(produto.Id);
+        visualizacao.Nome.ShouldBe(produto.Nome);
+        visualizacao.Descricao.ShouldBe(produto.Descricao);
+        visualizacao.Preco.ShouldBe(produto.Preco);
+        visualizacao.QuantidadeEmEstoque.ShouldBe(produto.QuantidadeEmEstoque);
     }
-    
+
     [Fact]
     public async Task Should_Throw_Visualizar_Produto_Id_Inexistente()
     {
+        //Arrange
+        _produtoRepository
+            .Setup(r => r.ObterPorIdAsync(99, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Produto?)null);
+
         //Act
-        var ex = await Should.ThrowAsync<ArgumentException>(async () =>
-        {
-            await _produtoService.ListarProdutoAsync(1);
-        });
-        
+        var ex = await Should.ThrowAsync<NaoEncontradoException>(
+            () => _produtoService.ListarProdutoAsync(99));
+
         //Assert
-        ex.Message.ShouldBe($"Produto não encontrado");
+        ex.Message.ShouldBe("Produto 99 não encontrado");
     }
 
-    
     [Fact]
     public async Task Should_Visualizar_Lista_Produtos()
     {
         //Arrange
-        CriarProdutoDTO criarProdutoDTO1 = new CriarProdutoDTO()
+        var produtos = new[]
         {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 80,
-            QuantidadeEmEstoque = 20
+            ProdutoBuilder.Entidade(id: 1, nome: "Camiseta"),
+            ProdutoBuilder.Entidade(id: 2, nome: "Calça")
         };
-        
-        CriarProdutoDTO criarProdutoDTO2 = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta2",
-            Descricao = "Camiseta de algodão2",
-            Preco = 60,
-            QuantidadeEmEstoque = 10
-        };
-        
+
+        _produtoRepository
+            .Setup(r => r.BuscarAsync(null, 1, 10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((produtos, produtos.Length));
+
         //Act
-        int idNovoProduto1 = await _produtoService.CriarProdutoAsync(criarProdutoDTO1);
-        int idNovoProduto2 = await _produtoService.CriarProdutoAsync(criarProdutoDTO2);
-        
-        VisualizarLista<VisualizarProdutoDTO> visualizarProdutoDTO = await _produtoService.ListarProdutosAsync();   
-        
-        //Asset
-        visualizarProdutoDTO.Itens[0].Id.ShouldBe(1);
-        visualizarProdutoDTO.Itens[0].Nome.ShouldBe(criarProdutoDTO1.Nome);
-        visualizarProdutoDTO.Itens[0].Descricao.ShouldBe(criarProdutoDTO1.Descricao);
-        visualizarProdutoDTO.Itens[0].Preco.ShouldBe(criarProdutoDTO1.Preco);
-        visualizarProdutoDTO.Itens[0].QuantidadeEmEstoque.ShouldBe(criarProdutoDTO1.QuantidadeEmEstoque);
-        
-        visualizarProdutoDTO.Itens[1].Id.ShouldBe(2);
-        visualizarProdutoDTO.Itens[1].Nome.ShouldBe(criarProdutoDTO2.Nome);
-        visualizarProdutoDTO.Itens[1].Descricao.ShouldBe(criarProdutoDTO2.Descricao);
-        visualizarProdutoDTO.Itens[1].Preco.ShouldBe(criarProdutoDTO2.Preco);
-        visualizarProdutoDTO.Itens[1].QuantidadeEmEstoque.ShouldBe(criarProdutoDTO2.QuantidadeEmEstoque);
-        
-        visualizarProdutoDTO.PaginaAtual.ShouldBe(1);
-        visualizarProdutoDTO.TotalPaginas.ShouldBe(1);
-        visualizarProdutoDTO.TotalItens.ShouldBe(2);
+        var resultado = await _produtoService.ListarProdutosAsync(new FiltroProdutoDTO());
+
+        //Assert
+        resultado.Itens.Count.ShouldBe(2);
+        resultado.TotalItens.ShouldBe(2);
+        resultado.PaginaAtual.ShouldBe(1);
+        resultado.TotalPaginas.ShouldBe(1);
     }
-    
+
+    [Fact]
+    public async Task Should_Calcular_Total_De_Paginas()
+    {
+        //Arrange: 25 itens em páginas de 10 => 3 páginas
+        var pagina = new[] { ProdutoBuilder.Entidade(id: 1) };
+
+        _produtoRepository
+            .Setup(r => r.BuscarAsync(null, 1, 10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((pagina, 25));
+
+        //Act
+        var resultado = await _produtoService.ListarProdutosAsync(new FiltroProdutoDTO());
+
+        //Assert
+        resultado.TotalPaginas.ShouldBe(3);
+        resultado.TotalItens.ShouldBe(25);
+    }
+
     [Fact]
     public async Task Should_Visualizar_Lista_Produtos_Filtro_Nome()
     {
         //Arrange
-        CriarProdutoDTO criarProdutoDTO1 = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 80,
-            QuantidadeEmEstoque = 20
-        };
-        
-        CriarProdutoDTO criarProdutoDTO2 = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta2",
-            Descricao = "Camiseta de algodão2",
-            Preco = 60,
-            QuantidadeEmEstoque = 10
-        };
-        
+        var filtro = new FiltroProdutoDTO { NomeProduto = "Camis", Page = 2, Limit = 5 };
+        var encontrados = new[] { ProdutoBuilder.Entidade(id: 1, nome: "Camiseta") };
+
+        _produtoRepository
+            .Setup(r => r.BuscarAsync("Camis", 2, 5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((encontrados, 1));
+
         //Act
-        int idNovoProduto1 = await _produtoService.CriarProdutoAsync(criarProdutoDTO1);
-        int idNovoProduto2 = await _produtoService.CriarProdutoAsync(criarProdutoDTO2);
-        
-        VisualizarLista<VisualizarProdutoDTO> visualizarProdutoDTO = await _produtoService.ListarProdutosAsync("Camiseta2");   
-        
-        //Asset
-        visualizarProdutoDTO.Itens[0].Id.ShouldBe(2);
-        visualizarProdutoDTO.Itens[0].Nome.ShouldBe(criarProdutoDTO2.Nome);
-        visualizarProdutoDTO.Itens[0].Descricao.ShouldBe(criarProdutoDTO2.Descricao);
-        visualizarProdutoDTO.Itens[0].Preco.ShouldBe(criarProdutoDTO2.Preco);
-        visualizarProdutoDTO.Itens[0].QuantidadeEmEstoque.ShouldBe(criarProdutoDTO2.QuantidadeEmEstoque);
-        
-        visualizarProdutoDTO.PaginaAtual.ShouldBe(1);
-        visualizarProdutoDTO.TotalPaginas.ShouldBe(1);
-        visualizarProdutoDTO.TotalItens.ShouldBe(1);
+        var resultado = await _produtoService.ListarProdutosAsync(filtro);
+
+        //Assert: o filtro e a paginação chegam intactos ao repositório
+        resultado.Itens.Single().Nome.ShouldBe("Camiseta");
+        resultado.PaginaAtual.ShouldBe(2);
+        _produtoRepository.Verify(
+            r => r.BuscarAsync("Camis", 2, 5, It.IsAny<CancellationToken>()), Times.Once);
     }
-    
+
     [Fact]
     public async Task Should_Editar_Produto()
     {
         //Arrange
-        CriarProdutoDTO criarProdutoDTO = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 80,
-            QuantidadeEmEstoque = 20
-        };
-        
-        int idNovoProduto = await _produtoService.CriarProdutoAsync(criarProdutoDTO);
+        var produto = ProdutoBuilder.Entidade(id: 3);
+        var dto = ProdutoBuilder.Editar();
 
-        EditarProdutoDTO editarProdutoDTO = new EditarProdutoDTO()
-        {
-            Nome = "Camiseta Editada",
-            Descricao = "",
-            Preco = 50,
-            QuantidadeEmEstoque = 10
-        };
-        
+        _produtoRepository
+            .Setup(r => r.ObterPorIdAsync(3, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(produto);
+
         //Act
-        _produtoService.EditarProdutoAsync(idNovoProduto,editarProdutoDTO);
-        
-        //Asset
-        VisualizarProdutoDTO visualizarProdutoDto = await _produtoService.ListarProdutoAsync(idNovoProduto);
-        
-        visualizarProdutoDto.Nome.ShouldBe(editarProdutoDTO.Nome);
-        visualizarProdutoDto.Descricao.ShouldBe(editarProdutoDTO.Descricao);
-        visualizarProdutoDto.Preco.ShouldBe(editarProdutoDTO.Preco);
-        visualizarProdutoDto.QuantidadeEmEstoque.ShouldBe(editarProdutoDTO.QuantidadeEmEstoque);
+        await _produtoService.EditarProdutoAsync(3, dto);
+
+        //Assert
+        produto.Nome.ShouldBe(dto.Nome);
+        produto.Descricao.ShouldBe(dto.Descricao);
+        produto.Preco.ShouldBe(dto.Preco);
+        produto.QuantidadeEmEstoque.ShouldBe(dto.QuantidadeEmEstoque);
+        _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
-    
+
     [Fact]
-    public async Task Should_Editar_Produto_Nao_Encontrado()
+    public async Task Should_Throw_Editar_Produto_Nao_Encontrado()
     {
         //Arrange
-        EditarProdutoDTO editarProdutoDTO = new EditarProdutoDTO()
-        {
-            Nome = "Camiseta Editada",
-            Descricao = "",
-            Preco = 50,
-            QuantidadeEmEstoque = 10
-        };
-        
-        //Act
-        var ex = await Should.ThrowAsync<KeyNotFoundException>(async () =>
-        {
-            await _produtoService.EditarProdutoAsync(1,editarProdutoDTO);
-        });
-        
-        //Assert
-        ex.Message.ShouldBe($"Produto não encontrado");
+        _produtoRepository
+            .Setup(r => r.ObterPorIdAsync(99, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Produto?)null);
+
+        //Act + Assert
+        await Should.ThrowAsync<NaoEncontradoException>(
+            () => _produtoService.EditarProdutoAsync(99, ProdutoBuilder.Editar()));
+
+        _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
-    
+
     [Fact]
     public async Task Should_Deletar_Produto()
     {
         //Arrange
-        CriarProdutoDTO criarProdutoDTO1 = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta",
-            Descricao = "Camiseta de algodão",
-            Preco = 80,
-            QuantidadeEmEstoque = 20
-        };
-        
-        CriarProdutoDTO criarProdutoDTO2 = new CriarProdutoDTO()
-        {
-            Nome = "Camiseta2",
-            Descricao = "Camiseta de algodão2",
-            Preco = 60,
-            QuantidadeEmEstoque = 10
-        };
-        
-        int idNovoProduto1 = await _produtoService.CriarProdutoAsync(criarProdutoDTO1);
-        int idNovoProduto2 = await _produtoService.CriarProdutoAsync(criarProdutoDTO2);
-        
+        var produto = ProdutoBuilder.Entidade(id: 4);
+
+        _produtoRepository
+            .Setup(r => r.ObterPorIdAsync(4, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(produto);
+        _produtoRepository.Setup(r => r.Remover(produto));
+
         //Act
-        _produtoService.DeletarProdutoAsync(idNovoProduto1);
-        //Asset
-        VisualizarLista<VisualizarProdutoDTO> produtos =  await _produtoService.ListarProdutosAsync();
-        
-        produtos.Itens.Count.ShouldBe(1);
-        produtos.TotalItens.ShouldBe(1);
-    }
-    
-    [Fact]
-    public async Task Should_Deletar_Produto_Nao_Encontrado()
-    {
-        //Act
-        var ex = await Should.ThrowAsync<KeyNotFoundException>(async () =>
-        {
-            await _produtoService.DeletarProdutoAsync(1);
-        });
-        
+        await _produtoService.DeletarProdutoAsync(4);
+
         //Assert
-        ex.Message.ShouldBe($"Produto não encontrado");
+        _produtoRepository.Verify(r => r.Remover(produto), Times.Once);
+        _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Should_Throw_Deletar_Produto_Nao_Encontrado()
+    {
+        //Arrange
+        _produtoRepository
+            .Setup(r => r.ObterPorIdAsync(1, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Produto?)null);
+
+        //Act + Assert
+        await Should.ThrowAsync<NaoEncontradoException>(
+            () => _produtoService.DeletarProdutoAsync(1));
+
+        _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

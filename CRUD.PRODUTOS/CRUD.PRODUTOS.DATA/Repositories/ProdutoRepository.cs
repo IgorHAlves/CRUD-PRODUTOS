@@ -1,8 +1,6 @@
 using CRUD.PRODUTOS.DATA.Data;
-using CRUD.PRODUTOS.DOMAIN.DTOs;
-using CRUD.PRODUTOS.DOMAIN.Helper;
 using CRUD.PRODUTOS.DOMAIN.Models;
-using CRUD.PRODUTOS.INTERFACES;
+using CRUD.PRODUTOS.DOMAIN.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.PRODUTOS.DATA.Repositories;
@@ -15,67 +13,58 @@ public class ProdutoRepository : IProdutoRepository
     {
         _dbContext = dbContext;
     }
-    
-    public async Task CriarProdutoAsync(Produto produto)
+
+    public Task AdicionarAsync(Produto produto, CancellationToken cancellationToken = default)
     {
-        await _dbContext.Produtos.AddAsync(produto);
+        // Add (e não AddAsync): AddAsync só é necessário para geradores de valor
+        // que consultam o banco, como o HiLo. Aqui a identity é resolvida no insert.
+        _dbContext.Produtos.Add(produto);
+
+        return Task.CompletedTask;
     }
 
-
-    public async Task<Produto?> ListarProdutoAsync(int id)
+    public async Task<Produto?> ObterPorIdAsync(
+        int id,
+        bool rastrear = false,
+        CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Produtos
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var query = _dbContext.Produtos.AsQueryable();
+
+        if (!rastrear)
+            query = query.AsNoTracking();
+
+        return await query.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
-    public async Task<VisualizarLista<Produto>> ListarProdutosAsync(string nomeProduto, int page, int limit)
+    public async Task<(IReadOnlyList<Produto> Itens, int TotalItens)> BuscarAsync(
+        string? nomeProduto,
+        int page,
+        int limit,
+        CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Produtos.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(nomeProduto))
         {
-            query = query.Where(p => p.Nome.ToLower().Contains(nomeProduto.ToLower()));
+            // ILIKE é resolvido pelo Postgres e, ao contrário de LOWER(...) LIKE,
+            // permite o uso de índice (com pg_trgm) na coluna Nome.
+            var termo = $"%{nomeProduto.Trim()}%";
+            query = query.Where(p => EF.Functions.ILike(p.Nome, termo));
         }
 
-        int totalItens = await query.CountAsync();
+        var totalItens = await query.CountAsync(cancellationToken);
 
-        var produtos = await query
-            .OrderBy(p => p.Id) 
+        var itens = await query
+            .OrderBy(p => p.Id)
             .Skip((page - 1) * limit)
             .Take(limit)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-        return new VisualizarLista<Produto>
-        {
-            TotalItens = totalItens,
-            TotalPaginas = (int)Math.Ceiling(totalItens / (double)limit),
-            PaginaAtual = page,
-            Itens = produtos
-        };
+        return (itens, totalItens);
     }
 
-    public async Task EditarProdutoAsync(int id, EditarProdutoDTO dto)
+    public void Remover(Produto produto)
     {
-        var produto = await _dbContext.Produtos.FirstOrDefaultAsync(p => p.Id == id);
-
-        if (produto == null)
-            throw new KeyNotFoundException("Produto não encontrado");
-
-        produto.Nome = dto.Nome;
-        produto.Descricao = dto.Descricao;
-        produto.Preco = dto.Preco;
-        produto.QuantidadeEmEstoque = dto.QuantidadeEmEstoque;
-        produto.DataAlteracao = DateTime.UtcNow;
-    }
-
-
-    public async Task DeletarProdutoAsync(int id)
-    {
-        var produto = await _dbContext.Produtos.FindAsync(id);
-        if (produto == null)
-            throw new KeyNotFoundException("Produto não encontrado");
         _dbContext.Produtos.Remove(produto);
     }
-
 }

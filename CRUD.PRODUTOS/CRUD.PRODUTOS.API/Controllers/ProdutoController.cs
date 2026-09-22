@@ -1,6 +1,7 @@
-using CRUD.PRODUTOS.DOMAIN.DTOs;
-using CRUD.PRODUTOS.DOMAIN.Helper;
-using CRUD.PRODUTOS.INTERFACES;
+using CRUD.PRODUTOS.APPLICATION.Common;
+using CRUD.PRODUTOS.APPLICATION.DTOs.Produto;
+using CRUD.PRODUTOS.APPLICATION.Services;
+using CRUD.PRODUTOS.DOMAIN.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,8 @@ namespace CRUD.PRODUTOS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
+[Produces("application/json")]
 public class ProdutoController : ControllerBase
 {
     private readonly IProdutoService _produtoService;
@@ -16,113 +19,96 @@ public class ProdutoController : ControllerBase
     {
         _produtoService = produtoService;
     }
-    
+
     /// <summary>
     /// Retorna um produto pelo Id.
     /// </summary>
     /// <param name="id">Identificador do produto.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="200">Produto encontrado.</response>
     /// <response code="404">Produto não encontrado.</response>
-    [Authorize]
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(VisualizarProdutoDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<VisualizarProdutoDTO>> GetById(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var produto = await _produtoService.ListarProdutoAsync(id);
-            return Ok(produto);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return Ok(await _produtoService.ListarProdutoAsync(id, cancellationToken));
     }
-    
+
     /// <summary>
-    /// Lista produtos de forma paginada.
+    /// Lista produtos de forma paginada, opcionalmente filtrando pelo nome.
     /// </summary>
-    /// <param name="page">Página atual.</param>
-    /// <param name="limit">Quantidade de itens por página.</param>
+    /// <param name="filtro">Nome, página e quantidade de itens por página.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="200">Lista de produtos retornada.</response>
-    [Authorize]
+    /// <response code="400">Parâmetros de paginação inválidos.</response>
     [HttpGet]
-    public async Task<IActionResult> Get(
-        [FromQuery] string nomeProduto = "",
-        [FromQuery] int page = 1,
-        [FromQuery] int limit = 10)
+    [ProducesResponseType(typeof(ResultadoPaginado<VisualizarProdutoDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ResultadoPaginado<VisualizarProdutoDTO>>> Get(
+        [FromQuery] FiltroProdutoDTO filtro,
+        CancellationToken cancellationToken)
     {
-        var produtos = await _produtoService.ListarProdutosAsync(nomeProduto,page, limit);
-        return Ok(produtos);
+        return Ok(await _produtoService.ListarProdutosAsync(filtro, cancellationToken));
     }
-    
+
     /// <summary>
     /// Cadastra um novo produto.
     /// </summary>
-    /// <remarks>
-    /// Valida se o preço e a quantidade são maiores ou iguais a zero.
-    /// </remarks>
+    /// <param name="dto">Dados do produto.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="201">Produto criado com sucesso.</response>
     /// <response code="400">Dados inválidos.</response>
-    [Authorize(Roles = "Admin")]
+    /// <response code="403">Usuário autenticado não é administrador.</response>
+    [Authorize(Roles = Roles.Admin)]
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] CriarProdutoDTO dto)
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Post([FromBody] CriarProdutoDTO dto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var id = await _produtoService.CriarProdutoAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id }, null);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var id = await _produtoService.CriarProdutoAsync(dto, cancellationToken);
+
+        return CreatedAtAction(nameof(GetById), new { id }, null);
     }
-    
+
     /// <summary>
     /// Atualiza os dados de um produto existente.
     /// </summary>
     /// <param name="id">Identificador do produto.</param>
+    /// <param name="dto">Novos dados do produto.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="204">Produto atualizado com sucesso.</response>
     /// <response code="400">Dados inválidos.</response>
+    /// <response code="403">Usuário autenticado não é administrador.</response>
     /// <response code="404">Produto não encontrado.</response>
-    [Authorize(Roles = "Admin")]
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Put(int id, [FromBody] EditarProdutoDTO dto)
+    [Authorize(Roles = Roles.Admin)]
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Put(int id, [FromBody] EditarProdutoDTO dto, CancellationToken cancellationToken)
     {
-        try
-        {
-            await _produtoService.EditarProdutoAsync(id, dto);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        await _produtoService.EditarProdutoAsync(id, dto, cancellationToken);
+
+        return NoContent();
     }
 
     /// <summary>
     /// Remove um produto.
     /// </summary>
     /// <param name="id">Identificador do produto.</param>
+    /// <param name="cancellationToken">Token de cancelamento da requisição.</param>
     /// <response code="204">Produto removido com sucesso.</response>
+    /// <response code="403">Usuário autenticado não é administrador.</response>
     /// <response code="404">Produto não encontrado.</response>
-    [Authorize(Roles = "Admin")]
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    [Authorize(Roles = Roles.Admin)]
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            await _produtoService.DeletarProdutoAsync(id);
-            return NoContent();
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-    }
+        await _produtoService.DeletarProdutoAsync(id, cancellationToken);
 
+        return NoContent();
+    }
 }

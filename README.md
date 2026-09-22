@@ -14,9 +14,10 @@ Esta é uma API REST desenvolvida em **.NET 8** para o gerenciamento de produtos
 ## 📌 Funcionalidades
 
 ### Autenticação e Usuários
-* **Registro:** Cadastro de novos usuários com definição de Role (Admin/Padrao).
-* **Segurança:** Senhas armazenadas com criptografia (Hash).
-* **Login:** Autenticação que gera um token JWT válido por 2 horas.
+* **Registro:** Auto-cadastro público. O perfil **não** é aceito do cliente: todo usuário criado por este endpoint nasce como `Padrao`.
+* **Promoção de perfil:** `PUT /api/auth/usuarios/{id}/role`, restrito a administradores.
+* **Segurança:** Senhas armazenadas com hash BCrypt, mínimo de 8 caracteres.
+* **Login:** Autenticação que gera um token JWT, com validade configurável em `Jwt:ExpireMinutes`.
 
 ### Produtos
 * **CRUD Completo:** Criar, Visualizar, Editar e Deletar produtos.
@@ -26,14 +27,23 @@ Esta é uma API REST desenvolvida em **.NET 8** para o gerenciamento de produtos
 
 ## ⚙️ Como Rodar o Projeto
 
-### 1. Configurar o Banco de Dados (PostgreSQL)
-Certifique-se de ter o PostgreSQL rodando. No arquivo `appsettings.json` do projeto **API**, ajuste a string de conexão:
+### 1. Configurar os segredos
 
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Host=localhost;Port=5432;Database=produtosdb;Username=SEU_USUARIO;Password=SUA_SENHA"
-}
+A string de conexão e a chave JWT **não ficam versionadas**. Configure-as com o
+gerenciador de segredos do .NET (em produção, use variáveis de ambiente):
+
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
+  "Host=localhost;Port=5432;Database=produtosdb;Username=SEU_USUARIO;Password=SUA_SENHA" \
+  --project CRUD.PRODUTOS.API
+
+# A chave precisa ter no mínimo 32 caracteres
+dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)" --project CRUD.PRODUTOS.API
 ```
+
+A aplicação valida essa configuração na inicialização e **não sobe** com a chave
+ausente ou curta — não existe chave padrão embutida no código.
+
 ### 2. Rodar as Migrations (Criação das Tabelas)
 Abra o terminal no projeto de data (CRUD.PRODUTOS.DATA) e execute os comandos abaixo para criar a estrutura do banco automaticamente:
 
@@ -48,7 +58,9 @@ dotnet run --project CRUD.PRODUTOS.API
 
 ## 🧪 Testes Unitários
 
-O projeto possui testes utilizando xUnit, Moq e Shouldly, cobrindo os serviços de autenticação, produtos e repositórios.
+O projeto possui testes utilizando xUnit, Moq e Shouldly, cobrindo os serviços de
+autenticação e produtos (isolados do banco, com dublês de repositório), os
+repositórios (EF Core InMemory) e a validação dos DTOs.
 
 Para rodar os testes:
 dotnet test
@@ -60,13 +72,16 @@ Para testar as rotas protegidas da API, siga os passos abaixo:
 1. **Registrar Usuário**: Utilize o endpoint `POST /api/auth/registrar`.
    * **Exemplo de Payload**:
      ```json
-     { 
-       "login": "admin", 
-       "senha": "123", 
-       "role": "Admin" 
+     {
+       "login": "admin",
+       "senha": "senhaSegura1"
      }
      ```
-2. **Obter Token**: Realize o login no endpoint `POST /api/auth/login` com as credenciais criadas para receber o seu **Token JWT**.
+   * O campo `role` é ignorado/rejeitado: o usuário é criado como `Padrao`.
+     Para ter um administrador, promova o usuário com
+     `PUT /api/auth/usuarios/{id}/role` (exige um token de `Admin`) ou faça a
+     promoção diretamente no banco no primeiro setup.
+2. **Obter Token**: Realize o login no endpoint `POST /api/auth/login` com as credenciais criadas para receber o seu **Token JWT** e a data de expiração.
 
 3. **Configurar o Swagger**:
    * Clique no botão **Authorize** (ícone do cadeado verde) localizado no topo da página do Swagger.

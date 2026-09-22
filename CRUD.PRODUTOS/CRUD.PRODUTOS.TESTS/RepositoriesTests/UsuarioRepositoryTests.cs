@@ -1,94 +1,98 @@
 using CRUD.PRODUTOS.DATA.Data;
 using CRUD.PRODUTOS.DATA.Repositories;
+using CRUD.PRODUTOS.DOMAIN.Common;
 using CRUD.PRODUTOS.DOMAIN.Models;
-using Microsoft.EntityFrameworkCore;
+using CRUD.PRODUTOS.DOMAIN.Repositories;
+using CRUD.PRODUTOS.TESTS.Factories;
 using Shouldly;
 using Xunit;
 
 namespace CRUD.PRODUTOS.TESTS.RepositoriesTests;
 
-public class UsuarioRepositoryTests
+public class UsuarioRepositoryTests : IDisposable
 {
-    private readonly AppDBContext _context;
-    private readonly UsuarioRepository _repository;
+    private readonly AppDBContext _dbContext;
+    private readonly IUsuarioRepository _usuarioRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public UsuarioRepositoryTests()
     {
-        // Usa o seu Factory para banco em memória
-        _context = TestAppDbContextFactory.Create();
-        _repository = new UsuarioRepository(_context);
+        _dbContext = TestAppDbContextFactory.Create();
+        _usuarioRepository = new UsuarioRepository(_dbContext);
+        _unitOfWork = new UnitOfWork(_dbContext, TimeProvider.System);
+    }
+
+    public void Dispose() => _dbContext.Dispose();
+
+    private async Task<Usuario> SemearAsync(string login = "igor")
+    {
+        var usuario = new Usuario
+        {
+            Login = login,
+            SenhaHash = "hash-ficticio",
+            Role = Roles.Padrao
+        };
+
+        await _usuarioRepository.AdicionarAsync(usuario);
+        await _unitOfWork.CommitAsync();
+
+        return usuario;
     }
 
     [Fact]
     public async Task Should_Criar_Usuario()
     {
-        // Arrange
-        var usuario = new Usuario
-        {
-            Login = "igor.alves",
-            SenhaHash = "hash_secreto_123",
-            Role = "Admin",
-            DataCriacao = DateTime.UtcNow
-        };
+        //Act
+        var usuario = await SemearAsync();
 
-        // Act
-        await _repository.CriarAsync(usuario);
-        await _context.SaveChangesAsync();
-
-        // Assert
-        var salvo = await _context.Usuarios.FirstOrDefaultAsync(u => u.Login == "igor.alves");
-        
-        salvo.ShouldNotBeNull();
-        salvo.Login.ShouldBe("igor.alves");
-        salvo.Role.ShouldBe("Admin");
+        //Assert
+        usuario.Id.ShouldBeGreaterThan(0);
+        usuario.DataCriacao.Kind.ShouldBe(DateTimeKind.Utc);
     }
 
     [Fact]
     public async Task Should_Obter_Usuario_Por_Login()
     {
-        // Arrange
-        var loginProcurado = "usuario.teste";
-        _context.Usuarios.Add(new Usuario
-        {
-            Login = loginProcurado,
-            SenhaHash = "hash123",
-            Role = "Common"
-        });
-        await _context.SaveChangesAsync();
+        //Arrange
+        await SemearAsync();
 
-        // Act
-        var usuario = await _repository.ObterPorLoginAsync(loginProcurado);
+        //Act
+        var usuario = await _usuarioRepository.ObterPorLoginAsync("igor");
 
-        // Assert
+        //Assert
         usuario.ShouldNotBeNull();
-        usuario.Login.ShouldBe(loginProcurado);
+        usuario.Login.ShouldBe("igor");
+        usuario.Role.ShouldBe(Roles.Padrao);
+    }
+
+    [Fact]
+    public async Task Should_Obter_Usuario_Por_Id()
+    {
+        //Arrange
+        var criado = await SemearAsync();
+
+        //Act
+        var usuario = await _usuarioRepository.ObterPorIdAsync(criado.Id);
+
+        //Assert
+        usuario.ShouldNotBeNull();
+        usuario.Login.ShouldBe("igor");
     }
 
     [Fact]
     public async Task Should_Retornar_Null_Quando_Login_Nao_Existe()
     {
-        // Act
-        var usuario = await _repository.ObterPorLoginAsync("login.inexistente");
-
-        // Assert
-        usuario.ShouldBeNull();
+        (await _usuarioRepository.ObterPorLoginAsync("fantasma")).ShouldBeNull();
     }
 
     [Fact]
-    public async Task Should_Respeitar_Unicidade_De_Login()
+    public async Task Should_Indicar_Que_Login_Ja_Existe()
     {
-        // Arrange
-        var usuario1 = new Usuario { Login = "admin", SenhaHash = "123", Role = "Admin" };
-        var usuario2 = new Usuario { Login = "admin", SenhaHash = "456", Role = "Padrao" };
+        //Arrange
+        await SemearAsync();
 
-        await _repository.CriarAsync(usuario1);
-        await _context.SaveChangesAsync();
-
-        // Act e Assert
-        await Should.ThrowAsync<ArgumentException>(async () =>
-        {
-            await _repository.CriarAsync(usuario2);
-            await _context.SaveChangesAsync();
-        });
+        //Act + Assert
+        (await _usuarioRepository.ExisteLoginAsync("igor")).ShouldBeTrue();
+        (await _usuarioRepository.ExisteLoginAsync("outro")).ShouldBeFalse();
     }
 }

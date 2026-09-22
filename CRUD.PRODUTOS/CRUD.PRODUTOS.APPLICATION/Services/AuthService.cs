@@ -1,79 +1,108 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using CRUD.PRODUTOS.DOMAIN.DTOs;
-using CRUD.PRODUTOS.DOMAIN.Helper;
+using CRUD.PRODUTOS.APPLICATION.Configuration;
+using CRUD.PRODUTOS.APPLICATION.DTOs.Auth;
+using CRUD.PRODUTOS.DOMAIN.Common;
+using CRUD.PRODUTOS.DOMAIN.Exceptions;
 using CRUD.PRODUTOS.DOMAIN.Models;
-using CRUD.PRODUTOS.INTERFACES;
-using Microsoft.Extensions.Configuration;
+using CRUD.PRODUTOS.DOMAIN.Repositories;
+using CRUD.PRODUTOS.DOMAIN.Security;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace CRUD.PRODUTOS.SERVICES;
+namespace CRUD.PRODUTOS.APPLICATION.Services;
 
-public class AuthService
+public class AuthService : IAuthService
 {
-    private readonly IConfiguration _config;
+    private readonly JwtOptions _jwtOptions;
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public AuthService(IConfiguration config, IUsuarioRepository usuarioRepository,IUnitOfWork unitOfWork)
+    public AuthService(
+        IOptions<JwtOptions> jwtOptions,
+        IUsuarioRepository usuarioRepository,
+        IUnitOfWork unitOfWork,
+        IPasswordHasher passwordHasher)
     {
-        _config = config;
+        _jwtOptions = jwtOptions.Value;
         _usuarioRepository = usuarioRepository;
         _unitOfWork = unitOfWork;
+        _passwordHasher = passwordHasher;
     }
 
-    public async Task RegistrarAsync(RegistrarUsuarioDTO dto)
+    public async Task RegistrarAsync(RegistrarUsuarioDTO dto, CancellationToken cancellationToken = default)
     {
-        if (await _usuarioRepository.ObterPorLoginAsync(dto.Login) != null)
-            throw new ArgumentException("Login já existe");
+        var login = dto.Login.Trim();
+
+        if (await _usuarioRepository.ExisteLoginAsync(login, cancellationToken))
+            throw new RegraDeNegocioException("Login já cadastrado");
 
         var usuario = new Usuario
         {
-            Login = dto.Login,
-            SenhaHash = PasswordHasher.Hash(dto.Senha),
-            Role =  dto.Role,
-            DataCriacao = DateTime.UtcNow
-            
+            Login = login,
+            SenhaHash = _passwordHasher.Hash(dto.Senha),
+            // O perfil nunca vem do cliente: auto-cadastro sempre gera usuário comum.
+            Role = Roles.Padrao
         };
 
-        await _usuarioRepository.CriarAsync(usuario);
-        await _unitOfWork.CommitAsync();
+        await _usuarioRepository.AdicionarAsync(usuario, cancellationToken);
+        await _unitOfWork.CommitAsync(cancellationToken);
     }
 
-    public async Task<string> LoginAsync(LoginDTO dto)
+    public async Task<TokenResponseDTO> LoginAsync(LoginDTO dto, CancellationToken cancellationToken = default)
     {
-        var usuario = await _usuarioRepository.ObterPorLoginAsync(dto.Login)
-                      ?? throw new ArgumentException("Login ou senha inválidos");
+        var usuario = await _usuarioRepository.ObterPorLoginAsync(dto.Login.Trim(), cancellationToken)
+                      ?? throw new CredenciaisInvalidasException();
 
-        if (!PasswordHasher.Verify(dto.Senha, usuario.SenhaHash))
-            throw new ArgumentException("Login ou senha inválidos");
+        if (!_passwordHasher.Verify(dto.Senha, usuario.SenhaHash))
+            throw new CredenciaisInvalidasException();
 
         return GerarToken(usuario);
     }
-    
-    private string GerarToken(Usuario usuario)
+
+    public async Task AlterarRoleAsync(int usuarioId, AlterarRoleDTO dto, CancellationToken cancellationToken = default)
     {
+        if (!Roles.EhValida(dto.Role))
+            throw new RegraDeNegocioException($"Role inválida. Valores aceitos: {Roles.Admin}, {Roles.Padrao}");
+
+        var usuario = await _usuarioRepository.ObterPorIdAsync(usuarioId, cancellationToken)
+                      ?? throw new NaoEncontradoException($"Usuário {usuarioId} não encontrado");
+
+        usuario.Role = dto.Role;
+
+        await _unitOfWork.CommitAsync(cancellationToken);
+    }
+
+    private TokenResponseDTO GerarToken(Usuario usuario)
+    {
+        var expiraEm = DateTime.UtcNow.AddMinutes(_jwtOptions.ExpireMinutes);
+
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, usuario.Login),
-            new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-            
-            new Claim(ClaimTypes.Role, usuario.Role)
+            new(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+            new(ClaimTypes.Name, usuario.Login),
+            new(ClaimTypes.Role, usuario.Role)
         };
 
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_config["Jwt:Key"]!)
-        );
+        var credenciais = new SigningCredentials(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key)),
+            SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: _jwtOptions.Issuer,
+            audience: _jwtOptions.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(2),
-            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-        );
+            expires: expiraEm,
+            signingCredentials: credenciais);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new TokenResponseDTO
+        {
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            ExpiraEm = expiraEm
+        };
     }
 }
