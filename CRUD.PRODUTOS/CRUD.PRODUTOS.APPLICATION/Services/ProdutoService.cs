@@ -1,102 +1,75 @@
-using CRUD.PRODUTOS.DOMAIN.DTOs;
-using CRUD.PRODUTOS.DOMAIN.Helper;
-using CRUD.PRODUTOS.DOMAIN.Models;
-using CRUD.PRODUTOS.INTERFACES;
+using CRUD.PRODUTOS.APPLICATION.Common;
+using CRUD.PRODUTOS.APPLICATION.DTOs.Produto;
+using CRUD.PRODUTOS.APPLICATION.Mappings;
+using CRUD.PRODUTOS.DOMAIN.Exceptions;
+using CRUD.PRODUTOS.DOMAIN.Repositories;
 
-namespace CRUD.PRODUTOS.SERVICES;
+namespace CRUD.PRODUTOS.APPLICATION.Services;
 
 public class ProdutoService : IProdutoService
 {
     private readonly IProdutoRepository _produtoRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public ProdutoService(
-        IProdutoRepository produtoRepository,
-        IUnitOfWork unitOfWork)
+    public ProdutoService(IProdutoRepository produtoRepository, IUnitOfWork unitOfWork)
     {
         _produtoRepository = produtoRepository;
         _unitOfWork = unitOfWork;
     }
-    
-    public async Task<VisualizarProdutoDTO?> ListarProdutoAsync(int id)
-    {
-        Produto? produto = await _produtoRepository.ListarProdutoAsync(id);
 
-        if (produto == null)
-            throw new ArgumentException("Produto não encontrado");
+    public async Task<VisualizarProdutoDTO> ListarProdutoAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var produto = await _produtoRepository.ObterPorIdAsync(id, cancellationToken: cancellationToken)
+                      ?? throw NaoEncontradoException.Produto(id);
         
-        VisualizarProdutoDTO retorno = new VisualizarProdutoDTO()
-        {
-            Id = produto.Id,
-            Nome = produto.Nome,
-            Descricao = produto.Descricao,
-            Preco = produto.Preco,
-            QuantidadeEmEstoque = produto.QuantidadeEmEstoque
-        };
-        
-        return retorno;
+        //Como produtomapping é static e passa um produto como parâmetro, posso chamar produto.metodo-do-produtomapping
+        return produto.ParaVisualizacao();
     }
 
-    public async Task<VisualizarLista<VisualizarProdutoDTO>> ListarProdutosAsync(string? nomeProduto, int page, int limit)
+    public async Task<ResultadoPaginado<VisualizarProdutoDTO>> ListarProdutosAsync(
+        FiltroProdutoDTO filtro,
+        CancellationToken cancellationToken = default)
     {
-        var resultado = await _produtoRepository.ListarProdutosAsync(nomeProduto, page, limit);
+        var (itens, totalItens) = await _produtoRepository.BuscarAsync(
+            filtro.NomeProduto,
+            filtro.Page,
+            filtro.Limit,
+            cancellationToken);
 
-        return new VisualizarLista<VisualizarProdutoDTO>
-        {
-            TotalItens = resultado.TotalItens,
-            TotalPaginas = resultado.TotalPaginas,
-            PaginaAtual = resultado.PaginaAtual,
-            Itens = resultado.Itens.Select(p => new VisualizarProdutoDTO
-            {
-                Id = p.Id,
-                Nome = p.Nome,
-                Descricao = p.Descricao,
-                Preco = p.Preco,
-                QuantidadeEmEstoque = p.QuantidadeEmEstoque
-            }).ToList()
-        };
+        return ResultadoPaginado<VisualizarProdutoDTO>.Criar(
+            itens.ParaVisualizacao(),
+            totalItens,
+            filtro.Page,
+            filtro.Limit);
     }
 
-    public async Task<int> CriarProdutoAsync(CriarProdutoDTO dto)
+    public async Task<int> CriarProdutoAsync(CriarProdutoDTO dto, CancellationToken cancellationToken = default)
     {
-        if (dto.Preco < 0)
-            throw new ArgumentException("Preço não pode ser negativo");
-        
-        if (dto.Preco == 0)
-            throw new ArgumentException("Preço não pode ser zero");
-        
-        if (dto.QuantidadeEmEstoque < 0)
-            throw new ArgumentException("Quantidade não pode ser negativa");
-        
-        var produto = new Produto
-        {
-            Nome = dto.Nome,
-            Descricao = dto.Descricao,
-            Preco = dto.Preco,
-            QuantidadeEmEstoque = dto.QuantidadeEmEstoque,
-        };
+        var produto = dto.ParaEntidade();
 
-        await _produtoRepository.CriarProdutoAsync(produto);
-        await _unitOfWork.CommitAsync();
+        await _produtoRepository.AdicionarAsync(produto, cancellationToken);
+        await _unitOfWork.CommitAsync(cancellationToken);
 
         return produto.Id;
     }
 
-    public async Task EditarProdutoAsync(int id,EditarProdutoDTO dto)
+    public async Task EditarProdutoAsync(int id, EditarProdutoDTO dto, CancellationToken cancellationToken = default)
     {
-        if (dto.Preco < 0)
-            throw new ArgumentException("Preço não pode ser negativo");
+        var produto = await _produtoRepository.ObterPorIdAsync(id, rastrear: true, cancellationToken)
+                      ?? throw NaoEncontradoException.Produto(id);
 
-        if (dto.QuantidadeEmEstoque < 0)
-            throw new ArgumentException("Quantidade não pode ser negativa");
-        
-        await _produtoRepository.EditarProdutoAsync(id,dto);
-        await _unitOfWork.CommitAsync();
+        dto.AplicarEm(produto);
+
+        await _unitOfWork.CommitAsync(cancellationToken);
     }
 
-    public async Task DeletarProdutoAsync(int id)
+    public async Task DeletarProdutoAsync(int id, CancellationToken cancellationToken = default)
     {
-        await _produtoRepository.DeletarProdutoAsync(id);
-        await _unitOfWork.CommitAsync();
+        var produto = await _produtoRepository.ObterPorIdAsync(id, rastrear: true, cancellationToken)
+                      ?? throw NaoEncontradoException.Produto(id);
+
+        _produtoRepository.Remover(produto);
+
+        await _unitOfWork.CommitAsync(cancellationToken);
     }
 }

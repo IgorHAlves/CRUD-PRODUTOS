@@ -1,6 +1,6 @@
 using CRUD.PRODUTOS.DATA.Data;
 using CRUD.PRODUTOS.DOMAIN.Models;
-using CRUD.PRODUTOS.INTERFACES;
+using CRUD.PRODUTOS.DOMAIN.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRUD.PRODUTOS.DATA.Repositories;
@@ -14,18 +14,27 @@ public class UsuarioRepository : IUsuarioRepository
         _dbContext = dbContext;
     }
 
-    public async Task<Usuario?> ObterPorLoginAsync(string login)
+    public async Task<Usuario?> ObterPorLoginAsync(string login, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Usuarios.FirstOrDefaultAsync(u => u.Login == login);
+        return await _dbContext.Usuarios
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Login == login, cancellationToken);
     }
 
-    public async Task CriarAsync(Usuario usuario)
+    public async Task<Usuario?> ObterPorIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var existe = await _dbContext.Usuarios.AnyAsync(u => u.Login == usuario.Login);
-        if (existe)
-        {
-            throw new ArgumentException("Login já cadastrado");
-        }
-        await _dbContext.Usuarios.AddAsync(usuario);
+        return await _dbContext.Usuarios.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+    }
+
+    public async Task<bool> ExisteLoginAsync(string login, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Usuarios.AnyAsync(u => u.Login == login, cancellationToken);
+    }
+
+    public Task AdicionarAsync(Usuario usuario, CancellationToken cancellationToken = default)
+    {
+        _dbContext.Usuarios.Add(usuario);
+
+        return Task.CompletedTask;
     }
 }

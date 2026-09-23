@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="../build/CRUD.PRODUTOS.API.props" />
-</Project>
